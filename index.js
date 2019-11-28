@@ -1,20 +1,7 @@
 const fs = require("fs");
 const http = require("http");
 const url = require("url");
-
-const replaceTemplate = (temp, product) => {
-  let output = temp.replace(/{%PRODUCTNAME%}/g, product.productName);
-  output = output.replace(/{%IMAGE%}/g, product.image);
-  output = output.replace(/{%PRICE%}/g, product.price);
-  output = output.replace(/{%FROM%}/g, product.from);
-  output = output.replace(/{%NUTRIENTS%}/g, product.nutrients);
-  output = output.replace(/{%QUANTITY%}/g, product.quantity);
-  output = output.replace(/{%DESCRIPTION%}/g, product.description);
-  output = output.replace(/{%ID%}/g, product.id);
-  
-  if(!product.organic) output = output.replace(/{%NOT_ORGANIC%}/g, 'not-organic');
-  return output;
-};
+const replaceTemplate = require('./modules/replaceTemplate.js');
 
 //Load Template
 const tempOverview = fs.readFileSync(
@@ -30,6 +17,7 @@ const tempProduct = fs.readFileSync(
   `utf-8`
 );
 
+//Json
 const data = fs.readFileSync(
   `${__dirname}/starter/dev-data/data.json`,
   `utf-8`
@@ -38,27 +26,30 @@ const dataObj = JSON.parse(data);
 // console.log(dataObj)
 const server = http.createServer((req, res) => {
   // console.log(req.url);
-  const {query, pathname} = url.parse(req.url, true);
 
+  //Url
+  const { query, pathname } = url.parse(req.url, true);
 
   //Overview
   if (pathname === "/" || pathname === "/overview") {
-    const cardHtml = dataObj.map(el => replaceTemplate(tempCard, el)).join('');
-    const output = tempOverview.replace(/{%PRODUCT_CARDS%}/, cardHtml)
+    const cardHtml = dataObj.map(el => replaceTemplate(tempCard, el)).join("");
+    const output = tempOverview.replace(/{%PRODUCT_CARDS%}/, cardHtml);
     // console.log(cardHtml);
     res.end(output);
 
     //Product
   } else if (pathname === "/product") {
-    
-    const product = dataObj[query.id]
+    res.writeHead(200, {
+      "Content-type": "text/html"
+    });
+    const product = dataObj[query.id];
     const output = replaceTemplate(tempProduct, product);
     res.end(output);
 
     //Api
   } else if (pathname === `/api`) {
     res.writeHead(200, {
-      "Content-type": "application.api"
+      "Content-type": "application/api"
     });
     res.end(data);
 
@@ -75,4 +66,3 @@ const server = http.createServer((req, res) => {
 server.listen(8000, `127.0.0.1`, () => {
   console.log(`Listen requests on port 8000`);
 });
-
